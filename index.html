@@ -715,6 +715,110 @@
   .report-header, .stats-row, .codes-grid, .fire-section, .utility-section, .hierarchy-note {
     animation: fadeIn 0.3s ease forwards;
   }
+
+  /* ─── SOURCE LINK ICONS (in code cards) ─── */
+  .source-link-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 3px;
+    background: var(--border);
+    color: var(--text3);
+    font-size: 9px;
+    font-family: var(--mono);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .source-link-icon:hover { background: var(--accent)20; color: var(--accent); }
+
+  /* ─── DATA SOURCES PANEL ─── */
+  .sources-panel {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .sources-panel-header {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .source-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    margin-bottom: 8px;
+    transition: border-color 0.15s;
+  }
+  .source-row:hover { border-color: var(--border2); }
+
+  .source-icon { font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+
+  .source-info { flex: 1; min-width: 0; }
+
+  .source-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .source-url {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .source-codes {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 3px;
+  }
+
+  .source-open-btn {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 4px 9px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    color: var(--text2);
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: border-color 0.15s, color 0.15s;
+    align-self: center;
+  }
+  .source-open-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .disclaimer-text {
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    line-height: 1.8;
+  }
 </style>
 </head>
 <body>
@@ -803,6 +907,102 @@ const CODES = {
   NYSBC:{ label: 'NYSBC',name: 'New York State Building Code',         org: 'NYS-DOS',color:'blue'},
   OSSC: { label: 'OSSC', name: 'Oregon Structural Specialty Code',     org: 'OBDD',  color: 'blue' },
   WSEC: { label: 'WSEC', name: 'WA State Energy Code',                 org: 'WA-DOC',color: 'green' },
+};
+
+// ─── DATA SOURCE CATALOG ───────────────────────────────────────────────────
+// Maps each code key to its canonical scraper source identifier.
+const CODE_SOURCES = {
+  IBC: 'icc_chart', IRC: 'icc_chart', IFC: 'icc_chart',
+  IMC: 'icc_chart', IPC: 'icc_chart', IECC: 'icc_chart',
+  IEBC: 'icc_chart', IGCC: 'icc_chart', IFGC: 'icc_chart',
+  NEC: 'nec_citel',
+  NFPA1: 'nfpa_atc', NFPA13: 'nfpa_atc', NFPA72: 'nfpa_atc',
+  UPC: 'iapmo_upc', UMC: 'iapmo_umc',
+  CBC: 'ca_bsc', CMC: 'ca_bsc', CPC: 'ca_bsc', CEC: 'ca_bsc',
+  NYSBC: 'nys_dos', OSSC: 'or_bcd', WSEC: 'wa_sbcc',
+};
+
+// Each entry describes the live URL an engineer can inspect.
+// stateUrl (optional): function(abbr) → per-state URL variant.
+const DATA_SOURCES = {
+  icc_chart: {
+    icon: '📄',
+    label: 'ICC Master I-Code Adoption Chart',
+    url: 'https://www.iccsafe.org/wp-content/uploads/Master-I-Code-Adoption-Chart.pdf',
+    note: 'PDF · Updated ~monthly',
+    codes: ['IBC','IRC','IFC','IMC','IPC','IECC','IEBC','IGCC','IFGC'],
+  },
+  nec_citel: {
+    icon: '⚡',
+    label: 'CITEL – NEC State Adoption Table (2025)',
+    url: 'https://citel.us/en/where-is-the-national-electrical-code-in-effect-as-of-2025',
+    note: 'HTML · Updated annually',
+    codes: ['NEC'],
+  },
+  becp: {
+    icon: '🏗',
+    label: 'DOE BECP – Building Energy Codes State Portal',
+    url: 'https://www.energycodes.gov/status',
+    stateUrl: (abbr) => `https://www.energycodes.gov/status/states/${abbr.toLowerCase()}`,
+    note: 'HTML · DOE per-state portal',
+    codes: ['IECC'],
+  },
+  nfpa_atc: {
+    icon: '🔴',
+    label: 'NFPA Adoption Tracking Center',
+    url: 'https://www.nfpa.org/Codes-and-Standards/Adoption-Tracking-Center',
+    note: 'HTML',
+    codes: ['NFPA1','NFPA13','NFPA72'],
+  },
+  municode: {
+    icon: '📚',
+    label: 'Municode Library – Local Code of Ordinances',
+    url: 'https://library.municode.com/',
+    note: 'HTML · Searchable municipal codes',
+    codes: [],
+  },
+  iapmo_upc: {
+    icon: '🔧',
+    label: 'IAPMO – UPC State Adoption Status',
+    url: 'https://www.iapmo.org/upc/',
+    note: 'HTML',
+    codes: ['UPC'],
+  },
+  iapmo_umc: {
+    icon: '🔧',
+    label: 'IAPMO – UMC State Adoption Status',
+    url: 'https://www.iapmo.org/umc/',
+    note: 'HTML',
+    codes: ['UMC'],
+  },
+  ca_bsc: {
+    icon: '🏛',
+    label: 'CA Building Standards Commission – Title 24',
+    url: 'https://www.dgs.ca.gov/BSC/Codes',
+    note: 'CA BSC',
+    codes: ['CBC','CMC','CPC','CEC'],
+  },
+  nys_dos: {
+    icon: '🏛',
+    label: 'NYS Dept. of State – Building Codes',
+    url: 'https://dos.ny.gov/building-codes',
+    note: 'NYS DOS',
+    codes: ['NYSBC'],
+  },
+  or_bcd: {
+    icon: '🏛',
+    label: 'Oregon Building Codes Division',
+    url: 'https://www.oregon.gov/bcd/codes-stand/Pages/oregon-codes-standards.aspx',
+    note: 'OR BCD',
+    codes: ['OSSC'],
+  },
+  wa_sbcc: {
+    icon: '🏛',
+    label: 'WA State Building Code Council',
+    url: 'https://sbcc.wa.gov/state-building-codes',
+    note: 'WA SBCC',
+    codes: ['WSEC'],
+  },
 };
 
 // Core jurisdiction database
@@ -1613,10 +1813,23 @@ function amendmentIcon(amend) {
   return '<span class="amend-icon amend-mod">◈</span>';
 }
 
-function renderCodeCard(key, code) {
+function renderCodeCard(key, code, stateAbbr) {
   const def = CODES[key] || { label: key, name: key, org: '—', color: 'gray' };
   const hasAmendments = code.amendments && code.amendments.length > 0;
   const badgeColor = `badge-${def.color}`;
+
+  // Resolve source URL for this code
+  const sourceKey = CODE_SOURCES[key];
+  const sourceDef = sourceKey ? DATA_SOURCES[sourceKey] : null;
+  let sourceUrl = sourceDef ? sourceDef.url : null;
+  // For IECC, prefer the per-state DOE BECP page when we have a state abbreviation
+  if (key === 'IECC' && stateAbbr && DATA_SOURCES.becp.stateUrl) {
+    sourceUrl = DATA_SOURCES.becp.stateUrl(stateAbbr);
+  }
+  const sourceHtml = sourceUrl
+    ? `<a href="${sourceUrl}" target="_blank" rel="noopener noreferrer"
+          class="source-link-icon" title="Source: ${sourceDef.label}">↗</a>`
+    : '';
 
   return `
     <div class="code-card">
@@ -1625,7 +1838,10 @@ function renderCodeCard(key, code) {
           <div class="code-name">${def.label}</div>
           <div class="code-full-name">${def.name}</div>
         </div>
-        <div class="code-year">${code.year || '—'}</div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          ${sourceHtml}
+          <div class="code-year">${code.year || '—'}</div>
+        </div>
       </div>
       <div class="code-meta-row">
         ${codeStatusBadge(code)}
@@ -1638,6 +1854,73 @@ function renderCodeCard(key, code) {
           ? code.amendments.map(a => `<div class="amendment-item">${amendmentIcon(a)}<span>${a}</span></div>`).join('')
           : '<div class="no-amendments">No local amendments on record.</div>'
         }
+      </div>
+    </div>
+  `;
+}
+
+function buildSourcesPanel(state, isLocal, adoptedCodes) {
+  // Collect which source keys are relevant for the codes in this view
+  const neededSources = new Set();
+
+  Object.keys(adoptedCodes).forEach(codeKey => {
+    const sk = CODE_SOURCES[codeKey];
+    if (sk) neededSources.add(sk);
+    // IECC also draws from the DOE BECP per-state portal
+    if (codeKey === 'IECC') neededSources.add('becp');
+  });
+
+  // ICC chart covers most I-codes; always include it if any ICC code is present
+  const hasIccCode = Object.keys(adoptedCodes).some(k => DATA_SOURCES.icc_chart.codes.includes(k));
+  if (hasIccCode) neededSources.add('icc_chart');
+
+  // For local views (city/county), Municode is a primary source
+  if (isLocal) neededSources.add('municode');
+
+  const rows = Array.from(neededSources).map(sk => {
+    const src = DATA_SOURCES[sk];
+    if (!src) return '';
+
+    // Build URL — for BECP, use the per-state deep-link
+    let url = src.url;
+    if (sk === 'becp' && src.stateUrl && state.abbr) {
+      url = src.stateUrl(state.abbr);
+    }
+    const urlDisplay = url.replace(/^https?:\/\//, '');
+
+    // Which adopted codes does this source cover in the current view?
+    const relevantCodes = Object.keys(adoptedCodes).filter(k => src.codes.includes(k));
+    const codeTagsHtml = relevantCodes.length
+      ? `<div class="source-codes">covers: ${relevantCodes.join(', ')}</div>`
+      : (sk === 'municode' ? `<div class="source-codes">local ordinances &amp; municipal code of ordinances</div>` : '');
+
+    return `
+      <div class="source-row">
+        <span class="source-icon">${src.icon}</span>
+        <div class="source-info">
+          <div class="source-label">
+            ${src.label}
+            <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">${src.note}</span>
+          </div>
+          <div class="source-url">${urlDisplay}</div>
+          ${codeTagsHtml}
+        </div>
+        <a href="${url}" target="_blank" rel="noopener noreferrer" class="source-open-btn">OPEN ↗</a>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="sources-panel">
+      <div class="sources-panel-header">
+        <span>Data Sources</span>
+        <span style="background:var(--border);padding:2px 7px;border-radius:10px;color:var(--text2)">${neededSources.size}</span>
+      </div>
+      ${rows}
+      <div class="disclaimer-text">
+        <strong>⚠ DISCLAIMER:</strong> This database is for reference only. Adoption status changes frequently.
+        Always verify current adopted codes and amendments directly with the Authority Having Jurisdiction (AHJ)
+        before submitting construction documents. Code adoption varies significantly even within a single county.
       </div>
     </div>
   `;
@@ -1701,7 +1984,7 @@ function showReport(state, local, localName) {
     : '';
 
   // Code cards
-  const codes_html = Object.entries(adoptedCodes).map(([k,v]) => renderCodeCard(k,v)).join('');
+  const codes_html = Object.entries(adoptedCodes).map(([k,v]) => renderCodeCard(k,v,state.abbr)).join('');
 
   // Fire district section
   let fireHtml = '';
@@ -1741,21 +2024,14 @@ function showReport(state, local, localName) {
         Local codes supersede state codes where adopted. For items not covered by local ordinance, state codes apply.
       </div>
       <div class="codes-grid">
-        ${Object.entries(state.adopted).map(([k,v]) => renderCodeCard(k,v)).join('')}
+        ${Object.entries(state.adopted).map(([k,v]) => renderCodeCard(k,v,state.abbr)).join('')}
       </div>
     `;
   }
 
-  // Data footer
-  const footer = `
-    <div class="data-footer">
-      Data sources: ICC Code Adoption Maps · NFPA State Electrical Code Tracking · ICC Regional Survey 2024 ·
-      State legislature databases · Municipal code archives · DORA/DFPC · OBDD · CDPHE/DCA<br>
-      <strong>⚠ DISCLAIMER:</strong> This database is for reference only. Adoption status changes frequently.
-      Always verify current adopted codes and amendments directly with the Authority Having Jurisdiction (AHJ)
-      before submitting construction documents. Code adoption varies significantly even within a single county.
-    </div>
-  `;
+  // Data sources footer — collect codes from both local and state-level adoptions
+  const allAdoptedForSources = isLocal ? { ...state.adopted, ...local.adopted } : adoptedCodes;
+  const footer = buildSourcesPanel(state, isLocal, allAdoptedForSources);
 
   html = `
     <div class="report-header">
