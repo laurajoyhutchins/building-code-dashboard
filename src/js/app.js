@@ -844,22 +844,45 @@ function buildTree() {
 // ─── SEARCH AUTOCOMPLETE ───
 function buildSuggestions(query) {
   if (!query || query.length < 2) return [];
-  const q = query.toLowerCase();
-  const results = [];
 
-  Object.values(JURISDICTIONS).forEach(state => {
-    if (state.name.toLowerCase().includes(q) || state.abbr.toLowerCase() === q) {
-      results.push({ label: `${state.name}`, sub: state.abbr, type: 'STATE', state: state.abbr, city: null, county: null });
-    }
-    Object.keys(state.cities || {}).forEach(city => {
-      if (city.toLowerCase().includes(q)) {
-        results.push({ label: city, sub: state.name, type: 'CITY', state: state.abbr, city, county: null });
+  // Split on commas so address inputs like "123 Main St, Phoenix, AZ 85001"
+  // are broken into searchable tokens. Strip leading/trailing whitespace and
+  // trailing zip codes (e.g. "AZ 85001" → "AZ") from each token.
+  const rawParts = query.split(',').map(p => p.trim().replace(/\s+\d{5}(-\d{4})?$/, '').trim());
+  // De-duplicate and drop tokens that are too short or look like a street number/name only
+  const terms = [...new Set(rawParts)].filter(p => p.length >= 2);
+
+  const results = [];
+  const seen = new Set();
+
+  terms.forEach(term => {
+    const t = term.toLowerCase();
+    Object.values(JURISDICTIONS).forEach(state => {
+      if (state.name.toLowerCase().includes(t) || state.abbr.toLowerCase() === t) {
+        const key = `state:${state.abbr}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({ label: state.name, sub: state.abbr, type: 'STATE', state: state.abbr, city: null, county: null });
+        }
       }
-    });
-    Object.keys(state.counties || {}).forEach(county => {
-      if (county.toLowerCase().includes(q)) {
-        results.push({ label: county, sub: state.name, type: 'COUNTY', state: state.abbr, city: null, county });
-      }
+      Object.keys(state.cities || {}).forEach(city => {
+        if (city.toLowerCase().includes(t)) {
+          const key = `city:${state.abbr}:${city}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            results.push({ label: city, sub: state.name, type: 'CITY', state: state.abbr, city, county: null });
+          }
+        }
+      });
+      Object.keys(state.counties || {}).forEach(county => {
+        if (county.toLowerCase().includes(t)) {
+          const key = `county:${state.abbr}:${county}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            results.push({ label: county, sub: state.name, type: 'COUNTY', state: state.abbr, city: null, county });
+          }
+        }
+      });
     });
   });
 
