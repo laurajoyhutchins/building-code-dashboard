@@ -6,32 +6,36 @@ Dashboard + ingestion pipeline for U.S. building code adoption data.
 
 ```text
 building-code-dashboard/
-|-- index.html
-|-- README.md
-|-- .gitignore
-|-- .claude/
-|   `-- settings.local.json
-`-- src/
-    `-- py/
-        |-- __init__.py
-        |-- orchestrator.py
-        |-- db/
-        |   |-- __init__.py
-        |   `-- schema.py
-        |-- scrapers/
-        |   |-- __init__.py
-        |   |-- icc_chart_parser.py
-        |   |-- nec_scraper.py
-        |   |-- iecc_scraper.py
-        |   `-- municipal_scraper.py
-        `-- tests/
-            |-- __init__.py
-            `-- test_suite.py
+├── index.html          # GitHub Pages entrypoint (semantic HTML shell)
+├── README.md
+├── .gitignore
+├── .claude/
+│   └── settings.local.json
+└── src/
+    ├── css/
+    │   └── styles.css  # All dashboard styles
+    ├── js/
+    │   └── app.js      # Jurisdiction data + UI logic
+    └── py/
+        ├── __init__.py
+        ├── orchestrator.py
+        ├── db/
+        │   ├── __init__.py
+        │   └── schema.py
+        ├── scrapers/
+        │   ├── __init__.py
+        │   ├── icc_chart_parser.py
+        │   ├── nec_scraper.py
+        │   ├── iecc_scraper.py
+        │   └── municipal_scraper.py
+        └── tests/
+            ├── __init__.py
+            └── test_suite.py
 ```
 
 ## Notes
 
-- `index.html` is the GitHub Pages entrypoint.
+- `index.html` is the GitHub Pages entrypoint. Styles live in `src/css/styles.css`; data and UI logic live in `src/js/app.js`.
 - Scraper implementations live only in `src/py/scrapers/`.
 - Database schema implementation lives in `src/py/db/schema.py`.
 - Tests live in `src/py/tests/test_suite.py`.
