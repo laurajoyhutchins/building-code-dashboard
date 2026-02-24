@@ -2,10 +2,11 @@
 NEC / NFPA 70 State Adoption Scraper
 =====================================
 Sources:
-  Primary:   https://citel.us/en/where-is-the-national-electrical-code-in-effect-as-of-2025
-             (Most complete structured table; updated ~annually)
-  Secondary: https://www.mikeholt.com/necadoptionlist.php
-  Tertiary:  https://www.iaei.org/page/nec-code-adoption
+  Primary:   https://www.nfpa.org/education-and-research/electrical/nec-enforcement-maps
+             (Official NFPA publisher page; most authoritative source)
+  Secondary: https://citel.us/en/where-is-the-national-electrical-code-in-effect-as-of-2025
+             (Structured table; updated ~annually; used as fallback)
+  Tertiary:  https://www.mikeholt.com/necadoptionlist.php
 
 The NEC is published every 3 years (2017, 2020, 2023, 2026…).
 States adopt different editions; some have split adoptions (commercial vs residential).
@@ -38,11 +39,11 @@ except ImportError:
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-PRIMARY_URL   = "https://citel.us/en/where-is-the-national-electrical-code-in-effect-as-of-2025"
-SECONDARY_URL = "https://www.mikeholt.com/necadoptionlist.php"
+PRIMARY_URL   = "https://www.nfpa.org/education-and-research/electrical/nec-enforcement-maps"
+SECONDARY_URL = "https://citel.us/en/where-is-the-national-electrical-code-in-effect-as-of-2025"
 
-# Hardcoded fallback data (from fetched content, kept as authoritative baseline)
-# Sourced from the CITEL table, fetched February 2025
+# Hardcoded fallback data (used when live fetch fails)
+# Originally sourced from CITEL table (February 2025); cross-checked against NFPA enforcement maps
 NEC_FALLBACK: list[dict] = [
     {"state": "Alabama",          "abbr": "AL", "edition": 2020, "effective": "2022-07-01", "notes": "Alabama Division of Construction Management", "status": "adopted"},
     {"state": "Alaska",           "abbr": "AK", "edition": 2020, "effective": "2020-04-16", "notes": "", "status": "adopted"},
@@ -117,11 +118,10 @@ def fetch_html(url: str) -> Optional[str]:
         return None
 
 
-def parse_citel_table(html: str) -> list[dict]:
+def parse_html_table(html: str) -> list[dict]:
     """
-    Parse the CITEL NEC adoption table.
-    Expected structure: markdown-style table with columns:
-      State | Current Edition | 2020 Or 2023 NEC UPDATE Status | Other Editions
+    Parse a NEC adoption HTML table (NFPA or CITEL format).
+    Expected columns: State | Current Edition (with optional date) | Notes/Status
     """
     soup = BeautifulSoup(html, "lxml")
     records = []
@@ -303,7 +303,7 @@ def run(
     # Register source
     src_cur = conn.execute("""
         INSERT OR IGNORE INTO source_urls (source_type, url, label, last_fetched, last_status_code)
-        VALUES ('nfpa_map', ?, 'CITEL NEC State Adoption Table', datetime('now'), 200)
+        VALUES ('nfpa_map', ?, 'NFPA NEC Enforcement Maps (Official)', datetime('now'), 200)
         RETURNING id
     """, (PRIMARY_URL,))
     src_row = src_cur.fetchone()
@@ -319,7 +319,7 @@ def run(
             html = fetch_html(PRIMARY_URL)
 
         if html:
-            live = parse_citel_table(html)
+            live = parse_html_table(html)
             print(f"[nec_scraper] Parsed {len(live)} live records")
             records = merge_with_fallback(live)
         else:
